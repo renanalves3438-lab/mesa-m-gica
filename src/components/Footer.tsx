@@ -19,7 +19,7 @@ const Footer = () => {
 
           <div className="flex items-center gap-6">
             <Link
-              to="/admin"
+              to="/auth"
               className="text-muted-foreground hover:text-primary text-sm transition-colors"
             >
               Área Admin
