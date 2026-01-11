@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Leaf, Fish, Flame } from "lucide-react";
+import { Leaf, Fish, Flame, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/CartContext";
 import dishSteak from "@/assets/dish-steak.jpg";
 import dishSalmon from "@/assets/dish-salmon.jpg";
 import dishRisotto from "@/assets/dish-risotto.jpg";
@@ -100,10 +102,32 @@ const getTagIcon = (tag: string) => {
 
 const MenuSection = () => {
   const [activeCategory, setActiveCategory] = useState<Category>("todos");
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const { addItem, setIsCartOpen } = useCart();
 
   const filteredItems = activeCategory === "todos"
     ? menuItems
     : menuItems.filter(item => item.category === activeCategory);
+
+  const getQuantity = (id: number) => quantities[id] || 1;
+
+  const setQuantity = (id: number, qty: number) => {
+    if (qty >= 1) {
+      setQuantities(prev => ({ ...prev, [id]: qty }));
+    }
+  };
+
+  const handleAddToCart = (item: MenuItem) => {
+    const qty = getQuantity(item.id);
+    addItem({
+      id: item.id.toString(),
+      name: item.name,
+      price: item.price,
+      image: item.image,
+    }, qty);
+    setQuantities(prev => ({ ...prev, [item.id]: 1 }));
+    setIsCartOpen(true);
+  };
 
   return (
     <section id="cardapio" className="py-20">
@@ -189,9 +213,50 @@ const MenuSection = () => {
                     R$ {item.price.toFixed(2).replace(".", ",")}
                   </span>
                 </div>
-                <p className="text-muted-foreground text-sm leading-relaxed">
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4">
                   {item.description}
                 </p>
+
+                {/* Add to Cart Controls */}
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setQuantity(item.id, getQuantity(item.id) - 1);
+                      }}
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <span className="w-8 text-center font-medium text-foreground">
+                      {getQuantity(item.id)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setQuantity(item.id, getQuantity(item.id) + 1);
+                      }}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart(item);
+                    }}
+                    className="gradient-primary text-primary-foreground font-medium flex items-center gap-2"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    Adicionar
+                  </Button>
+                </div>
               </div>
             </motion.div>
           ))}
