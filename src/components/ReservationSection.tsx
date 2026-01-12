@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, Users, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ReservationSection = () => {
   const { toast } = useToast();
@@ -21,16 +22,66 @@ const ReservationSection = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Validate required fields
+      if (!formData.name.trim() || !formData.phone.trim() || !formData.date || !formData.time || !formData.guests) {
+        toast({
+          title: "Erro",
+          description: "Por favor, preencha todos os campos.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-    toast({
-      title: "Reserva solicitada!",
-      description: "Entraremos em contato para confirmar sua reserva.",
-    });
+      const guestsNumber = parseInt(formData.guests, 10);
+      if (isNaN(guestsNumber) || guestsNumber < 1 || guestsNumber > 20) {
+        toast({
+          title: "Erro",
+          description: "Número de pessoas deve ser entre 1 e 20.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-    setFormData({ name: "", phone: "", date: "", time: "", guests: "" });
-    setIsSubmitting(false);
+      // Insert reservation into database
+      const { error } = await supabase.from("reservations").insert({
+        nome: formData.name.trim(),
+        telefone: formData.phone.trim(),
+        data: formData.date,
+        horario: formData.time,
+        pessoas: guestsNumber,
+        user_id: null, // Anonymous reservation
+      });
+
+      if (error) {
+        console.error("Error creating reservation:", error);
+        toast({
+          title: "Erro ao criar reserva",
+          description: "Ocorreu um erro ao processar sua reserva. Tente novamente.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast({
+        title: "Reserva solicitada!",
+        description: "Entraremos em contato para confirmar sua reserva.",
+      });
+
+      setFormData({ name: "", phone: "", date: "", time: "", guests: "" });
+    } catch (error) {
+      console.error("Error creating reservation:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
